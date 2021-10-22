@@ -1,7 +1,7 @@
+const querystring = require('querystring');
 var http = require('http');
 var fs = require('fs');
 var url = require('url');
-var qs = require('querystring');
 
 function templateHTML (title, list, body) {
   return `
@@ -32,7 +32,7 @@ function templateList(fileList) {
   return list;
 }
 
-var app = http.createServer(function(request,response){
+var app = http.createServer(function(request,response){ // 서버 만드는 메소드
     var _url = request.url;
     var queryData = url.parse(_url, true).query;
     var pathname = url.parse(_url, true).pathname;
@@ -71,30 +71,38 @@ var app = http.createServer(function(request,response){
         var title = 'WEB - create';
         var list = templateList(fileList);
         var template = templateHTML(title, list, 
-        `<form action="http://localhost:3000/process_create" 
-        method ="post">
-            <p><input type="text" name="title" placeholder="title"></p>
-            <p>
-                <textarea name="description" placeholder="description"></textarea>
-            </p>
-            <p>
-                <input type="submit">
-            </p>
+        `<form action="http://localhost:3000/create_process" method="POST">
+          <p>
+            <input type="text" name="title" placeholder="title">
+          </p>
+          <p>
+            <textarea name="description" placeholder="description"></textarea>
+          </p>
+          <p>
+            <input type="submit">
+          </p>
         </form>`);
         response.writeHead(200);
         response.end(template);
     });
   } else if (pathname === '/create_process') {
     var body = '';
-    request.on('data', function(data) {
+    request.on('data', function(data) { // 요청에 데이터가 있으면
       body  = body + data;
     });
-    request.on('end', function() {
-      var post = qs.parse(body);
+    request.on('end', function() { // 요청의 데이터가 모두 받아졌으면
+      var post = querystring.parse(body);
       console.log(post);
+      var title = post.title;
+      var description = post.description;
+      console.log('title : ',title)
+      console.log('description : ',description)
+      fs.writeFile(`data/${title}`, description, 'utf8', 
+      function (err) {
+        response.writeHead(302, {Location: `/?id=${title}`});
+        response.end();            
+      })
     });
-    response.writeHead(200);
-    response.end('success');
   } else {
     response.writeHead(404);
     response.end('Not found');
